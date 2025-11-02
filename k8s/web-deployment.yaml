@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todo-web
+  namespace: todo
+  labels:
+    app: todo-web
+spec:
+  replicas: 2           # choose number of replicas per assignment
+  selector:
+    matchLabels:
+      app: todo-web
+  template:
+    metadata:
+      labels:
+        app: todo-web
+    spec:
+      containers:
+        - name: todo-web
+          image: kevzpeter/todo-flask:latest
+          ports:
+            - containerPort: 5000
+          env:
+            - name: MONGO_HOST
+              value: "mongo"         # service name of Mongo
+            - name: MONGO_PORT
+              value: "27017"
+          # optional liveness/readiness probes can be added here later
