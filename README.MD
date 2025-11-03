@@ -86,3 +86,86 @@
     Minikube Pod Recovery demo:
 
     ![Pod Recovery](./media/minikube%203%20pod%20repair.png)
+
+4.  Deployment on AWS EKS
+    Set up a managed Kubernetes cluster on AWS Elastic Kubernetes Service (EKS), configure IAM permissions, create a worker node group, and deploy the MongoDB + Flask web application.
+
+    Create EKS cluster using `eksctl` CLI tool:
+
+    ```bash
+    eksctl create cluster \
+    --name todo-cluster-v2 \
+    --region us-east-1 \
+    --nodegroup-name todo-nodes \
+    --node-type t3.small \
+    --nodes 2 \
+    --nodes-min 1 \
+    --nodes-max 4 \
+    --managed
+    ```
+
+    ![EKS Cluster](./media/eks%20cluster.png)
+    ![EKS Node Group](./media/eks%20node%20group.png)
+
+    After creation, update your local kubeconfig to point to the new cluster:
+
+    ```bash
+    aws eks update-kubeconfig --region us-east-1 --name todo-cluster-v2
+    ```
+
+    Verify connection:
+
+    ```
+    kubectl get nodes
+    kubectl get pods
+    kubectl get svc
+    ```
+
+    ![EKS Pods, SVC](./media/eks%20nodes.png)
+    ![EKS Pods, SVC](./media/eks%20pods_svc.png)
+
+    IAM stuff:
+
+    When connecting as an IAM user, EKS blocks access to Kubernetes objects unless explicitly granted.
+
+    Retrieve the node instance role from the AWS console (e.g. eksctl-todo-cluster-v2-nodegroup-t-NodeInstanceRole-hYGskgKzuMc2).
+
+    Add IAM identity mapping so worker nodes can authenticate to the cluster:
+
+    ```bash
+        eksctl create iamidentitymapping \
+    --region us-east-1 \
+    --cluster todo-cluster-v2 \
+    --arn arn:aws:iam::700638340879:role/eksctl-todo-cluster-v2-nodegroup-t-NodeInstanceRole-hYGskgKzuMc2 \
+    --group system:bootstrappers \
+    --group system:nodes \
+    --username system:node:{{EC2PrivateDNSName}}
+    ```
+
+    I also had to install EBS CSI Driver
+
+    ```bash
+    eksctl create addon \
+    --name aws-ebs-csi-driver \
+    --cluster todo-cluster-v2 \
+    --region us-east-1 \
+    --service-account-role-arn arn:aws:iam::700638340879:role/AmazonEKS_EBS_CSI_DriverRole \
+    --force
+    ```
+
+    Once EKS Cluster and Node group are ready, we deploy the MongoDB and Flask app manifests:
+
+    ```
+    kubectl apply -f mongo-pvc.yaml
+    kubectl apply -f mongo-deployment.yaml
+    kubectl apply -f mongo-service.yaml
+    kubectl apply -f web-deployment.yaml
+    kubectl apply -f web-service.yaml
+    ```
+
+    ![EKS](./media/eks%20pvc.png)
+    ![EKS](./media/eks%20storage%20class.png)
+
+    Deployed app on EKS:
+
+    ![EKS](./media/eks%20app.png)
