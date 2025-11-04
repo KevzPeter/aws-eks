@@ -1,23 +1,23 @@
 ## Docker, Kubernetes, AWS EKS Deployments
 
-#### Part 1: Creating the Application
+### Part 1: Creating the Application
 
 Source Code for the app is available under [src](./src/) directory.
 
-#### Part 2: Containerizing the Application on Docker
+### Part 2: Containerizing the Application on Docker
 
 Dockerfile for the Flask app is defined [here](./src/Dockerfile).
 Docker compose file with services for Flask and MongoDB is defined [here](./docker-compose.yml)
 
 Within `src` directory, run the following to build the image:
 
-```
+```bash
 docker build -t todo-flask .
 ```
 
 Then tag the image & push the image to Docker registry:
 
-```docker
+```bash
 docker tag todo-flask kevzpeter/todo-flask:latest
 docker push kevzpeter/todo-flask:latest
 ```
@@ -28,8 +28,8 @@ Link to Docker Hub image: https://hub.docker.com/repository/docker/kevzpeter/tod
 
 To run the app using Docker Compose, run the following from the root directory:
 
-```docker
-    docker compose up -d
+```bash
+docker compose up -d
 ```
 
 ![Docker Compose app running](./media/docker%20compose%20status.png)
@@ -38,9 +38,9 @@ App will be running on `http://localhost:5000/`
 
 ![Docker images](./media/docker%20compose%20app%20running.png)
 
-#### Part 3: Deploying the Application on Minikube
+### Part 3: Deploying the Application on Minikube
 
-To deploy the app locally using Minikube:
+After installing Minikube, start local node:
 
 ```bash
 minikube start
@@ -49,7 +49,7 @@ minikube start
 Make sure node is up and running:
 
 ```bash
-    kubectl get nodes
+kubectl get nodes
 ```
 
 ![Minikube node](./media/minikube%201.png)
@@ -64,7 +64,7 @@ Make sure node is up and running:
 
 Run the following commands:
 
-```kubernetes
+```bash
 kubectl apply -f mongo-pvc.yaml
 kubectl apply -f mongo-deployment.yaml
 kubectl apply -f mongo-service.yaml
@@ -74,7 +74,7 @@ kubectl apply -f web-service.yaml
 
 Confirm running pods using:
 
-```
+```bash
 kubectl get pods
 ```
 
@@ -82,18 +82,19 @@ kubectl get pods
 
 Access the app using:
 
-```
+```bash
 minikube service web
 ```
 
 Open the app in your browser via NodePort
 ![Minikube service](./media/minikube%202_2%20service.png)
 ![Minikube deployment](./media/minikube%20deployment.png)
+
 Minikube Pod Recovery demo:
 
 ![Pod Recovery](./media/minikube%203%20pod%20repair.png)
 
-#### Part 4: Deploying the Application on AWS EKS
+### Part 4: Deploying the Application on AWS EKS
 
 Set up a managed Kubernetes cluster on AWS Elastic Kubernetes Service (EKS), configure IAM permissions, create a worker node group, and deploy the MongoDB + Flask web application.
 
@@ -122,7 +123,7 @@ aws eks update-kubeconfig --region us-east-1 --name todo-cluster-v2
 
 Verify connection:
 
-```
+```bash
 kubectl get nodes
 kubectl get pods
 kubectl get svc
@@ -162,7 +163,7 @@ eksctl create addon \
 
 Once EKS Cluster and Node group are ready, we deploy the MongoDB and Flask app manifests:
 
-```
+```bash
 kubectl apply -f mongo-pvc.yaml
 kubectl apply -f mongo-deployment.yaml
 kubectl apply -f mongo-service.yaml
@@ -177,7 +178,7 @@ Deployed app on EKS:
 
 ![EKS](./media/eks%20app.png)
 
-#### Part 5: Deployments and ReplicaSets
+### Part 5: Deployments and ReplicaSets
 
 Replicas are defined in [web-deployment.yaml](./k8s/web-deployment.yaml) file.
 
@@ -192,13 +193,13 @@ spec:
 
 Apply updated manifest:
 
-```
+```bash
 kubectl apply -f web-deployment.yaml
 ```
 
 Verify ReplicaSet creation:
 
-```
+```bash
 kubectl get rs
 ```
 
@@ -207,7 +208,7 @@ Demo:
 
 Simulate Pod recovery by deleting one of the pods:
 
-```
+```bash
 kubectl delete pod <pod-name>
 ```
 
@@ -221,7 +222,7 @@ Scale the Deployment
 
 Eg: Scaling down deployment from 2 pods to 1
 
-```
+```bash
 kubectl scale deployment web --replicas=1
 kubectl get pods
 ```
@@ -229,31 +230,31 @@ kubectl get pods
 Demo:
 ![Part 5.3](./media/part%205%20-%203.png)
 
-#### Part 6: Rolling Update Strategy
+### Part 6: Rolling Update Strategy
 
 Update [web-deployment.yaml](./k8s/web-deployment.yaml) with rolling update strategy:
 
-```
+```yaml
 spec:
 replicas: 2
 strategy:
-    type: RollingUpdate
-    rollingUpdate:
-    maxUnavailable: 1
-    maxSurge: 1
+  type: RollingUpdate
+  rollingUpdate:
+  maxUnavailable: 1
+  maxSurge: 1
 ```
 
 Update the docker image in the deployment (eg: kevzpeter/todo-flask:v2)
 
 Apply deployment:
 
-```
+```bash
 kubectl apply -f web-deployment.yaml
 ```
 
 Check rollout status
 
-```
+```bash
 kubectl rollout status deployment/web
 ```
 
@@ -267,23 +268,23 @@ Demo:
 ![Part 6](./media/part%206%20-%203.png)
 ![Part 6](./media/part%206%20-%204.png)
 
-#### Part 7: Health Monitoring
+### Part 7: Health Monitoring
 
 I added liveness and readiness probes in the [web-deployment.yaml](./k8s/web-deployment.yaml) manifest to allow Kubernetes to periodically test pod health.
 
-```
+```yaml
 readinessProbe:
-    httpGet:
-        path: /
-        port: 5000
-    initialDelaySeconds: 10
-    periodSeconds: 5
+  httpGet:
+    path: /
+    port: 5000
+  initialDelaySeconds: 10
+  periodSeconds: 5
 livenessProbe:
-    httpGet:
-        path: /
-        port: 5000
-    initialDelaySeconds: 20
-    periodSeconds: 10
+  httpGet:
+    path: /
+    port: 5000
+  initialDelaySeconds: 20
+  periodSeconds: 10
 ```
 
 | Probe               | Purpose                                           | Action                                            |
@@ -293,7 +294,7 @@ livenessProbe:
 
 Apply the new manifest:
 
-```
+```bash
 kubectl apply -f web-deployment.yaml
 kubectl get pods
 ```
@@ -302,12 +303,12 @@ To simulate an application crash, we intentionally stopped the gunicorn process 
 
     - Open shell in the web pod:
 
-    ```
+    ```bash
     kubectl exec -it $(kubectl get pod -l app=web -o name | head -n1) -- /bin/sh
     ```
     2. Kill the running process (simulate crash):
 
-    ```
+    ```bash
     ps aux
     kill 1
     ```
@@ -328,16 +329,15 @@ Testing intentional deletion demo:
 ![Part 7.4](./media/part%207%20-%204.png)
 ![Part 7.4](./media/part%207%20-%204.2.png)
 
-#### Part 8: Alerting | Prometheus + Slack integration
+### Part 8: Alerting | Prometheus + Slack integration
 
 Prometheus setup using helm:
 
-```
+```bash
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
 kubectl create namespace monitoring
 helm install prometheus prometheus-community/kube-prometheus-stack -n monitoring
-
 ```
 
 ![Prometheus setup](./media/part%208%20-%201.png)
@@ -345,7 +345,7 @@ helm install prometheus prometheus-community/kube-prometheus-stack -n monitoring
 
 Port forwarding for local access:
 
-```
+```bash
 kubectl port-forward -n monitoring svc/prometheus-kube-prometheus-prometheus 9090:9090
 kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80
 ```
@@ -356,7 +356,7 @@ I added a PrometheusRule ([web-pod-alert.yaml](./k8s/web-pod-alert.yaml)) to ale
 
 Apply this manifest
 
-```
+```bash
 kubectl apply -f web-pod-alert.yaml -n monitoring
 
 ```
@@ -375,7 +375,7 @@ More information can be found on Slack's documentation page: https://docs.slack.
 
 Update alert manager manifest by creating a new secret from [alertmanager.yaml](./k8s/alertmanager.yaml):
 
-```
+```bash
 kubectl delete secret alertmanager-prometheus-kube-prometheus-alertmanager -n monitoring
 kubectl create secret generic alertmanager-prometheus-kube-prometheus-alertmanager -n monitoring --from-file=alertmanager.yaml
 kubectl delete pod -l app.kubernetes.io/name=alertmanager -n monitoring
@@ -390,7 +390,7 @@ Example: KubeMemoryOverCommit Error and Notification message on Slack:
 
 Then, I simulated a crash loop by breaking the web container using command:
 
-```
+```bash
 kubectl patch deployment web -p '{"spec":{"template":{"spec":{"containers":[{"name":"web","command":["false"]}]}}}}'
 ```
 
