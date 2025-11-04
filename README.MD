@@ -301,17 +301,18 @@ kubectl get pods
 
 To simulate an application crash, we intentionally stopped the gunicorn process (production server) inside one of the running pods.
 
-    - Open shell in the web pod:
+- Open shell in the web pod:
 
-    ```bash
-    kubectl exec -it $(kubectl get pod -l app=web -o name | head -n1) -- /bin/sh
-    ```
-    2. Kill the running process (simulate crash):
+  ```bash
+  kubectl exec -it $(kubectl get pod -l app=web -o name | head -n1) -- /bin/sh
+  ```
 
-    ```bash
-    ps aux
-    kill 1
-    ```
+- Kill the running process (simulate crash):
+
+  ```bash
+  ps aux
+  kill 1
+  ```
 
 The pod immediately transitions to a CrashLoopBackOff state. Kubernetes restarts it automatically.
 
